@@ -49,6 +49,9 @@ def start():
     # Add transport
     args.extend(["--transport", transport])
 
+    # Add port
+    args.extend(["--port", port])
+
     # Add API key
     args.extend(["--api-key", api_key])
 
