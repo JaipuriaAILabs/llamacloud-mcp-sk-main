@@ -108,9 +108,10 @@ def main(
     if port is None and transport in ["sse", "streamable-http"]:
         port = int(os.getenv("PORT", "8000"))
 
-    # Initialize FastMCP with port if needed
+    # Initialize FastMCP with port and host if needed
+    # Render requires binding to 0.0.0.0 to be accessible
     if transport in ["sse", "streamable-http"] and port:
-        mcp = FastMCP("llama-index-server", port=port)
+        mcp = FastMCP("llama-index-server", port=port, host="0.0.0.0")
     else:
         mcp = FastMCP("llama-index-server")
 
