@@ -12,14 +12,14 @@ mcp = None
 
 
 def make_index_tool(
-    index_name: str, project_id: Optional[str], org_id: Optional[str]
+    index_name: str, project_name: Optional[str], org_id: Optional[str]
 ) -> Callable[[Context, str], Awaitable[str]]:
     async def tool(ctx: Context, query: str) -> str:
         try:
             await ctx.info(f"Querying index: {index_name} with query: {query}")
             index = LlamaCloudIndex(
                 name=index_name,
-                project_id=project_id,
+                project_name=project_name,
                 organization_id=org_id,
             )
             response = await index.as_retriever().aretrieve(query)
@@ -32,7 +32,7 @@ def make_index_tool(
 
 
 def make_extract_tool(
-    agent_name: str, project_id: Optional[str], org_id: Optional[str]
+    agent_name: str, project_name: Optional[str], org_id: Optional[str]
 ) -> Callable[[Context, str], Awaitable[str]]:
     async def tool(ctx: Context, file_path: str) -> str:
         """Extract data using a LlamaExtract Agent from the given file."""
@@ -42,7 +42,7 @@ def make_extract_tool(
             )
             llama_extract = LlamaExtract(
                 organization_id=org_id,
-                project_id=project_id,
+                project_name=project_name,
             )
             extract_agent = llama_extract.get_agent(name=agent_name)
             result = await extract_agent.aextract(file_path)
@@ -72,7 +72,7 @@ def make_extract_tool(
     help="Extract agent definition in the format name:description. Can be used multiple times.",
 )
 @click.option(
-    "--project-id", required=False, type=str, help="Project ID for LlamaCloud"
+    "--project-name", required=False, type=str, help="Project name for LlamaCloud"
 )
 @click.option(
     "--org-id", required=False, type=str, help="Organization ID for LlamaCloud"
@@ -88,7 +88,7 @@ def make_extract_tool(
 def main(
     indexes: Optional[list[str]],
     extract_agents: Optional[list[str]],
-    project_id: Optional[str],
+    project_name: Optional[str],
     org_id: Optional[str],
     transport: str,
     api_key: Optional[str],
@@ -139,12 +139,12 @@ def main(
 
     # Dynamically register a tool for each index
     for name, description in index_info:
-        tool_func = make_index_tool(name, project_id, org_id)
+        tool_func = make_index_tool(name, project_name, org_id)
         mcp.tool(name=f"query_{name}", description=description)(tool_func)
 
     # Dynamically register a tool for each extract agent, if any
     for name, description in extract_agent_info:
-        tool_func = make_extract_tool(name, project_id, org_id)
+        tool_func = make_extract_tool(name, project_name, org_id)
         mcp.tool(name=f"extract_{name}", description=description)(tool_func)
 
     # Run the server (port is already configured in FastMCP constructor)

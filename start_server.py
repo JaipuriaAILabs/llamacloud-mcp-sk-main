@@ -41,7 +41,7 @@ def start():
 
     # Add project name if configured
     if project_name:
-        args.extend(["--project-id", project_name])
+        args.extend(["--project-name", project_name])
 
     # Add org ID
     args.extend(["--org-id", org_id])
