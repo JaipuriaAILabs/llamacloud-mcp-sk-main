@@ -58,8 +58,8 @@ You can now configure indexes from different LlamaCloud accounts by providing cr
 
    ```
    INDEX_1=AI-Strategy-Studies:Search AI strategy research:llx-YOUR-KEY-1:8d27cdab-b252-4a9b-a2c4-8eded34632a3:Default
-   INDEX_2=interim-primate-2026-01-21:Search case studies:llx-YOUR-KEY-2:6a9fda6c-fbd4-43f8-ad2b-4afbe41824d7:case-studies-supabase
-   INDEX_3=Persuasion and communication OB:Persuasion and OB research:llx-YOUR-KEY-2:6a9fda6c-fbd4-43f8-ad2b-4afbe41824d7:case-studies-supabase
+   INDEX_2=AI-Change-and-leadership:Search organizational change and leadership research:llx-YOUR-KEY-2:6a9fda6c-fbd4-43f8-ad2b-4afbe41824d7:case-studies-supabase
+   INDEX_3=Persuasion-and-communication-OB:Persuasion and organizational behavior research:llx-YOUR-KEY-2:6a9fda6c-fbd4-43f8-ad2b-4afbe41824d7:case-studies-supabase
    TRANSPORT=streamable-http
    ```
 
