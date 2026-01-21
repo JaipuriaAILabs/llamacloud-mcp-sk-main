@@ -10,13 +10,27 @@ This guide walks you through deploying the LlamaCloud MCP server to Render.
 4. Your LlamaCloud organization ID
 5. At least one configured index or extract agent in LlamaCloud
 
-## Current Configuration
+## Configuration Format
 
-This deployment is configured with:
+This deployment supports **multiple indexes** with **per-index credentials**, allowing you to query indexes from different LlamaCloud accounts in a single deployment.
+
+### Index Configuration Format
+
+Each index is defined using the format:
+```
+index_name:description:api_key:org_id:project_id
+```
+
+**Example configurations:**
+
+**Single Account (existing setup):**
 - **Index Name**: AI-Strategy-Studies
 - **Project Name**: Default
 - **Organization ID**: 8d27cdab-b252-4a9b-a2c4-8eded34632a3
 - **Transport**: streamable-http (HTTP-based MCP server)
+
+**Multiple Accounts:**
+You can now configure indexes from different LlamaCloud accounts by providing credentials per index.
 
 ## Deployment Steps
 
@@ -34,13 +48,31 @@ This deployment is configured with:
    - **Start Command**: `python start_server.py`
 
 3. **Set Environment Variables**
-   In the "Environment" section, add:
-   - `LLAMA_CLOUD_API_KEY`: Your LlamaCloud API key (⚠️ Keep this secret!)
+
+   **For Multiple Indexes (Recommended):**
+
+   Use numbered environment variables `INDEX_1`, `INDEX_2`, etc. Each index uses the format:
+   `index_name:description:api_key:org_id:project_id`
+
+   Example configuration with 3 indexes from 2 different accounts:
+
+   ```
+   INDEX_1=AI-Strategy-Studies:Search AI strategy research:llx-YOUR-KEY-1:8d27cdab-b252-4a9b-a2c4-8eded34632a3:Default
+   INDEX_2=interim-primate-2026-01-21:Search case studies:llx-YOUR-KEY-2:6a9fda6c-fbd4-43f8-ad2b-4afbe41824d7:case-studies-supabase
+   INDEX_3=Persuasion and communication OB:Persuasion and OB research:llx-YOUR-KEY-2:6a9fda6c-fbd4-43f8-ad2b-4afbe41824d7:case-studies-supabase
+   TRANSPORT=streamable-http
+   ```
+
+   **For Single Index (Legacy, Backward Compatible):**
+
    - `INDEX_NAME`: `AI-Strategy-Studies`
    - `INDEX_DESCRIPTION`: `Search and retrieve information from AI Strategy Studies`
+   - `LLAMA_CLOUD_API_KEY`: Your LlamaCloud API key (⚠️ Keep this secret!)
    - `PROJECT_NAME`: `Default`
    - `ORG_ID`: `8d27cdab-b252-4a9b-a2c4-8eded34632a3`
    - `TRANSPORT`: `streamable-http`
+
+   ⚠️ **Security Note**: API keys in `INDEX_*` variables are secrets! Render's environment variables are encrypted at rest.
 
 4. **Deploy**
    - Click "Create Web Service"
@@ -111,10 +143,39 @@ To use this MCP server with Claude Desktop, update your `claude_desktop_config.j
 
 ## Updating Configuration
 
-To update your index, extract agents, or other settings:
+### Adding or Removing Indexes
+
+To add a new index from a different account:
+
+1. Go to Render dashboard → Your service → Environment
+2. Add a new variable: `INDEX_4=name:description:api_key:org_id:project_id`
+3. The service will automatically restart and load the new index
+
+To remove an index:
+
+1. Delete the corresponding `INDEX_N` variable
+2. The service will automatically restart
+
+### Modifying Existing Indexes
+
+To update index configuration:
 
 1. Update the environment variables in the Render dashboard, OR
 2. Modify `render.yaml` and push changes to trigger a redeployment
+
+### Configuration Format Details
+
+**Full format**: `name:description:api_key:org_id:project_id`
+
+- All 5 fields required for per-index credentials
+- Use this when indexes are from different LlamaCloud accounts
+- Each index can have its own API key and organization ID
+
+**Partial format with fallbacks**: `name:description`
+
+- Uses default values from `LLAMA_CLOUD_API_KEY`, `ORG_ID`, `PROJECT_NAME`
+- Only works if default credentials are configured
+- Useful when all indexes are from the same account
 
 ## Troubleshooting
 

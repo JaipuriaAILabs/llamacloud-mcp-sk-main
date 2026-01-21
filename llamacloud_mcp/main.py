@@ -12,7 +12,10 @@ mcp = None
 
 
 def make_index_tool(
-    index_name: str, project_id: Optional[str], org_id: Optional[str]
+    index_name: str,
+    project_id: Optional[str],
+    org_id: Optional[str],
+    api_key: Optional[str] = None
 ) -> Callable[[Context, str], Awaitable[str]]:
     async def tool(ctx: Context, query: str) -> str:
         try:
@@ -21,6 +24,7 @@ def make_index_tool(
                 name=index_name,
                 project_id=project_id,
                 organization_id=org_id,
+                api_key=api_key,
             )
             response = await index.as_retriever().aretrieve(query)
             return str(response)
@@ -32,7 +36,10 @@ def make_index_tool(
 
 
 def make_extract_tool(
-    agent_name: str, project_id: Optional[str], org_id: Optional[str]
+    agent_name: str,
+    project_id: Optional[str],
+    org_id: Optional[str],
+    api_key: Optional[str] = None
 ) -> Callable[[Context, str], Awaitable[str]]:
     async def tool(ctx: Context, file_path: str) -> str:
         """Extract data using a LlamaExtract Agent from the given file."""
@@ -43,6 +50,7 @@ def make_extract_tool(
             llama_extract = LlamaExtract(
                 organization_id=org_id,
                 project_id=project_id,
+                api_key=api_key,
             )
             extract_agent = llama_extract.get_agent(name=agent_name)
             result = await extract_agent.aextract(file_path)
@@ -61,7 +69,8 @@ def make_extract_tool(
     multiple=True,
     required=False,
     type=str,
-    help="Index definition in the format name:description. Can be used multiple times.",
+    help="Index definition in the format name:description:api_key:org_id:project_id. Can be used multiple times. "
+         "Optional: api_key, org_id, and project_id can be omitted to use defaults.",
 )
 @click.option(
     "--extract-agent",
@@ -115,36 +124,52 @@ def main(
     else:
         mcp = FastMCP("llama-index-server")
 
-    # Parse indexes into (name, description) tuples
+    # Parse indexes into (name, description, api_key, org_id, project_id) tuples
     index_info = []
     if indexes:
         for idx in indexes:
-            if ":" not in idx:
+            parts = idx.split(":")
+            if len(parts) < 2:
                 raise click.BadParameter(
-                    f"Index '{idx}' must be in the format name:description"
+                    f"Index '{idx}' must be in the format name:description[:api_key:org_id:project_id]"
                 )
-            name, description = idx.split(":", 1)
-            index_info.append((name, description))
 
-    # Parse extract agents into (name, description) tuples if provided
+            name = parts[0]
+            description = parts[1]
+            # Optional per-index credentials (fallback to defaults if not provided)
+            idx_api_key = parts[2] if len(parts) > 2 else api_key
+            idx_org_id = parts[3] if len(parts) > 3 else org_id
+            idx_project_id = parts[4] if len(parts) > 4 else project_id
+
+            index_info.append((name, description, idx_api_key, idx_org_id, idx_project_id))
+
+    # Parse extract agents into (name, description, api_key, org_id, project_id) tuples if provided
     extract_agent_info = []
     if extract_agents:
         for agent in extract_agents:
-            if ":" not in agent:
+            parts = agent.split(":")
+            if len(parts) < 2:
                 raise click.BadParameter(
-                    f"Extract agent '{agent}' must be in the format name:description"
+                    f"Extract agent '{agent}' must be in the format name:description[:api_key:org_id:project_id]"
                 )
-            name, description = agent.split(":", 1)
-            extract_agent_info.append((name, description))
+
+            name = parts[0]
+            description = parts[1]
+            # Optional per-agent credentials (fallback to defaults if not provided)
+            agent_api_key = parts[2] if len(parts) > 2 else api_key
+            agent_org_id = parts[3] if len(parts) > 3 else org_id
+            agent_project_id = parts[4] if len(parts) > 4 else project_id
+
+            extract_agent_info.append((name, description, agent_api_key, agent_org_id, agent_project_id))
 
     # Dynamically register a tool for each index
-    for name, description in index_info:
-        tool_func = make_index_tool(name, project_id, org_id)
+    for name, description, idx_api_key, idx_org_id, idx_project_id in index_info:
+        tool_func = make_index_tool(name, idx_project_id, idx_org_id, idx_api_key)
         mcp.tool(name=f"query_{name}", description=description)(tool_func)
 
     # Dynamically register a tool for each extract agent, if any
-    for name, description in extract_agent_info:
-        tool_func = make_extract_tool(name, project_id, org_id)
+    for name, description, agent_api_key, agent_org_id, agent_project_id in extract_agent_info:
+        tool_func = make_extract_tool(name, agent_project_id, agent_org_id, agent_api_key)
         mcp.tool(name=f"extract_{name}", description=description)(tool_func)
 
     # Run the server (port is already configured in FastMCP constructor)
