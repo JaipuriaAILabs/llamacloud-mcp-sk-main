@@ -27,7 +27,7 @@ Options:
   --extract-agent TEXT            Extract agent definition in the format
                                   name:description. Can be used multiple
                                   times.
-  --project-id TEXT               Project ID for LlamaCloud
+  --project-name TEXT             Project name for LlamaCloud
   --org-id TEXT                   Organization ID for LlamaCloud
   --transport [stdio|sse|streamable-http]
                                   Transport to run the MCP server on. One of

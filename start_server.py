@@ -57,7 +57,7 @@ def start():
 
     # Add default project name if configured (used as fallback)
     if default_project_name:
-        args.extend(["--project-id", default_project_name])
+        args.extend(["--project-name", default_project_name])
 
     # Add default org ID (used as fallback)
     if default_org_id:
