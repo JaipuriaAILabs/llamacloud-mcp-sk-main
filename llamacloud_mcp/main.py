@@ -1,5 +1,6 @@
 import click
 import os
+import re
 
 from mcp.server.fastmcp import Context, FastMCP
 from llama_cloud_services import LlamaExtract
@@ -9,6 +10,21 @@ from typing import Awaitable, Callable, Optional
 
 # MCP instance will be created in main() with proper port configuration
 mcp = None
+
+
+def sanitize_tool_name(name: str) -> str:
+    """
+    Sanitize tool name to match MCP requirements: ^[a-zA-Z0-9_-]{1,64}$
+    Replaces spaces and invalid characters with underscores.
+    """
+    # Replace spaces and invalid characters with underscores
+    sanitized = re.sub(r'[^a-zA-Z0-9_-]', '_', name)
+    # Remove consecutive underscores
+    sanitized = re.sub(r'_+', '_', sanitized)
+    # Remove leading/trailing underscores
+    sanitized = sanitized.strip('_')
+    # Limit to 64 characters
+    return sanitized[:64]
 
 
 def make_index_tool(
@@ -165,12 +181,14 @@ def main(
     # Dynamically register a tool for each index
     for name, description, idx_api_key, idx_org_id, idx_project_name in index_info:
         tool_func = make_index_tool(name, idx_project_name, idx_org_id, idx_api_key)
-        mcp.tool(name=f"query_{name}", description=description)(tool_func)
+        tool_name = sanitize_tool_name(f"query_{name}")
+        mcp.tool(name=tool_name, description=description)(tool_func)
 
     # Dynamically register a tool for each extract agent, if any
     for name, description, agent_api_key, agent_org_id, agent_project_name in extract_agent_info:
         tool_func = make_extract_tool(name, agent_project_name, agent_org_id, agent_api_key)
-        mcp.tool(name=f"extract_{name}", description=description)(tool_func)
+        tool_name = sanitize_tool_name(f"extract_{name}")
+        mcp.tool(name=tool_name, description=description)(tool_func)
 
     # Run the server (port is already configured in FastMCP constructor)
     mcp.run(transport=transport)
